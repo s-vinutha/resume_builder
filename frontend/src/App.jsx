@@ -1,4 +1,6 @@
 import { useState } from 'react';
+// IMPORT CHART COMPONENTS
+import { RadialBarChart, RadialBar, ResponsiveContainer } from 'recharts';
 import './App.css';
 
 function App() {
@@ -15,7 +17,6 @@ function App() {
     setError('');
     setResult(null);
 
-    // Create a Multi-part Form payload to allow file handling over HTTP
     const formData = new FormData();
     formData.append('job_description', jobDescription);
     
@@ -28,7 +29,7 @@ function App() {
     try {
       const response = await fetch('http://127.0.0.1:5001/api/analyze', {
         method: 'POST',
-        body: formData, // Send form payload directly
+        body: formData,
       });
 
       const data = await response.json();
@@ -96,29 +97,57 @@ function App() {
 
       {error && <p style={{ color: 'red', marginTop: '15px' }}>⚠️ {error}</p>}
 
+      {/* DIAGNOSTICS CARD CONTAINING BOTH THE PROGRESS CHART & AI ADVICE LAYER */}
       {result && (
         <div style={{ marginTop: '30px', padding: '20px', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #e2e8f0', color: '#1a202c' }}>
-    <h2>📊 Scanner Diagnostics</h2>
-    
-    {/* Dynamic Gauge Chart */}
-    <div style={{ width: '100%', height: 200, display: 'flex', justifyContent: 'center' }}>
-      <ResponsiveContainer width="50%" height="100%">
-        <RadialBarChart cx="50%" cy="50%" innerRadius="70%" outerRadius="100%" barSize={15} data={[{ name: 'Score', value: parseFloat(result.ats_score), fill: '#2b6cb0' }]} startAngle={180} endAngle={0}>
-          <RadialBar minAngle={15} background clockWise dataKey="value" />
-          <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="progress-label" style={{ fontSize: '24px', fontWeight: 'bold', fill: '#2b6cb0' }}>
-            {result.ats_score}
-          </text>
-        </RadialBarChart>
-      </ResponsiveContainer>
-    </div>
+          <h2 style={{ margin: '0 0 10px 0', textAlign: 'center', color: '#1a202c' }}>📊 Scanner Diagnostics</h2>
+          
+          {/* Progress Gauge Chart */}
+          <div style={{ width: '100%', height: 180, display: 'flex', justifyContent: 'center', margin: '10px 0' }}>
+            <ResponsiveContainer width="60%" height="100%">
+              <RadialBarChart 
+                cx="50%" 
+                cy="70%" 
+                innerRadius="80%" 
+                outerRadius="110%" 
+                barSize={18} 
+                data={[{ name: 'Score', value: parseFloat(result.ats_score), fill: '#007BFF' }]} 
+                startAngle={180} 
+                endAngle={0}
+              >
+                <RadialBar background clockWise={true} dataKey="value" cornerRadius={10} />
+                <text 
+                  x="50%" 
+                  y="65%" 
+                  textAnchor="middle" 
+                  dominantBaseline="middle" 
+                  style={{ fontSize: '28px', fontWeight: 'bold', fill: '#1a202c' }}
+                >
+                  {result.ats_score}
+                </text>
+              </RadialBarChart>
+            </ResponsiveContainer>
+          </div>
 
-    <h4 style={{ color: '#2d3748' }}>🔍 Key Words Missing From Your Resume:</h4>
-    <ul style={{ paddingLeft: '20px' }}>
-      {result.missing_keywords.map((word, idx) => (
-        <li key={idx} style={{ color: '#dd6b20', fontWeight: 'bold' }}>{word}</li>
-      ))}
-    </ul>
-  </div>
+          {/* AI RECOMMENDATIONS ENGINE DISPLAY */}
+          {result.ai_recommendations && result.ai_recommendations.length > 0 && (
+            <div style={{ marginBottom: '20px', padding: '15px', background: '#ebf8ff', borderRadius: '6px', border: '1px solid #bee3f8' }}>
+              <h4 style={{ margin: '0 0 10px 0', color: '#2b6cb0' }}>🤖 AI Optimization Strategy:</h4>
+              <ul style={{ paddingLeft: '20px', margin: '0' }}>
+                {result.ai_recommendations.map((tip, idx) => (
+                  <li key={idx} style={{ marginBottom: '8px', fontSize: '14px', color: '#2d3748', textAlign: 'left' }}>{tip}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <h4 style={{ color: '#2d3748', margin: '20px 0 10px 0', textAlign: 'left' }}>🔍 Key Words Missing From Your Resume:</h4>
+          <ul style={{ paddingLeft: '20px', margin: '0', textAlign: 'left' }}>
+            {result.missing_keywords.map((word, idx) => (
+              <li key={idx} style={{ color: '#dd6b20', fontWeight: 'bold', marginBottom: '5px' }}>{word}</li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );

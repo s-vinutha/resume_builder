@@ -50,3 +50,21 @@ def extract_missing_keywords(resume_text, job_desc_text):
     important_job_words = job_words - stop_words
     missing_words = important_job_words - resume_words
     return list(missing_words)[:10]  # Return top 10 missing keywords
+
+def generate_ai_recommendations(score, missing_keywords):
+    """Generates structured optimization strategies based on the evaluation profile."""
+    recommendations = []
+    
+    if score >= 80:
+        recommendations.append("🌟 Excellent alignment! Your profile matches the high-priority core criteria perfectly.")
+    elif 50 <= score < 80:
+        recommendations.append("📈 Solid foundation, but your resume risks getting filtered due to missing semantic industry keywords.")
+    else:
+        recommendations.append("⚠️ Critical mismatch. Your resume needs substantial alignment with the explicit core requirements listed.")
+        
+    if missing_keywords:
+        top_skills = ", ".join(missing_keywords[:3])
+        recommendations.append(f"💡 Action Item: Integrate targeted action items demonstrating your experience with: {top_skills}.")
+        recommendations.append("🎯 Formatting Tip: Ensure these technologies are placed naturally within your 'Technical Skills' or 'Project' bullet points.")
+        
+    return recommendations
