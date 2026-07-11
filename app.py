@@ -1,28 +1,50 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from matcher import calculate_ats_score, extract_missing_keywords
-from database import init_db, save_analysis  # <-- Import database functions
+from database import init_db, save_analysis
+from pypdf import PdfReader  # <-- Import the PDF Reader tool
 
 app = Flask(__name__)
+CORS(app)
 
-# Initialize the SQL database table right when the server spins up
 init_db()
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze_resume():
-    data = request.get_json()
-    
-    if not data or 'resume' not in data or 'job_description' not in data:
-        return jsonify({"error": "Please provide both 'resume' and 'job_description' text."}), 400
+    # 1. INPUT: Check if a file was uploaded, otherwise fall back to raw text
+    job_desc_text = request.form.get('job_description', '')
+    resume_text = ""
+
+    if 'resume_file' in request.files:
+        file = request.files['resume_file']
+        if file.filename != '':
+            try:
+                # Parse binary data directly out of the uploaded PDF file
+                reader = PdfReader(file)
+                extracted_text = []
+                for page in reader.pages:
+                    text = page.extract_text()
+                    if text:
+                        extracted_text.append(text)
+                resume_text = "\n".join(extracted_text)
+            except Exception as e:
+                return jsonify({"error": f"Failed to parse PDF file: {str(e)}"}), 400
+    else:
+        # Fall back to text input if no file is present
+        resume_text = request.form.get('resume', '')
+
+    # Safety check: Make sure we actually obtained text for both fields
+    if not resume_text.strip() or not job_desc_text.strip():
+        return jsonify({"error": "Please provide both a resume (file or text) and a job description."}), 400
         
-    resume_text = data['resume']
-    job_desc_text = data['job_description']
-    
+    # 2. PROCESS: Run the matching engine logic
     match_score = calculate_ats_score(resume_text, job_desc_text)
     missing_words = extract_missing_keywords(resume_text, job_desc_text)
     
-    # 3. SAVE DATA: Log the processed results inside our database
+    # 3. SAVE DATA: Log the metrics to SQLite
     save_analysis(match_score, missing_words)
     
+    # 4. OUTPUT: Return results
     response_data = {
         "status": "success",
         "ats_score": f"{match_score}%",

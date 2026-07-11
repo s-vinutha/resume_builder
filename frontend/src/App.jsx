@@ -2,7 +2,8 @@ import { useState } from 'react';
 import './App.css';
 
 function App() {
-  const [resume, setResume] = useState('');
+  const [resumeText, setResumeText] = useState('');
+  const [resumeFile, setResumeFile] = useState(null);
   const [jobDescription, setJobDescription] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -14,17 +15,20 @@ function App() {
     setError('');
     setResult(null);
 
+    // Create a Multi-part Form payload to allow file handling over HTTP
+    const formData = new FormData();
+    formData.append('job_description', jobDescription);
+    
+    if (resumeFile) {
+      formData.append('resume_file', resumeFile);
+    } else {
+      formData.append('resume', resumeText);
+    }
+
     try {
-      // Connect to your local Flask API server running on port 5001
       const response = await fetch('http://127.0.0.1:5001/api/analyze', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          resume: resume,
-          job_description: jobDescription,
-        }),
+        body: formData, // Send form payload directly
       });
 
       const data = await response.json();
@@ -44,27 +48,37 @@ function App() {
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: 'Arial' }}>
       <h1>🤖 AI ATS-Friendly Resume Builder</h1>
-      <p>Analyze how well your profile matches the target job requirements instantly.</p>
-
+      
       <form onSubmit={handleAnalyze} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         <div>
-          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>Paste Resume Text:</label>
-          <textarea 
-            rows="6" 
-            style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
-            placeholder="Paste your resume profile or experience here..."
-            value={resume}
-            onChange={(e) => setResume(e.target.value)}
-            required
+          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>Upload Resume (PDF):</label>
+          <input 
+            type="file" 
+            accept=".pdf"
+            onChange={(e) => setResumeFile(e.target.files[0])}
+            style={{ marginBottom: '10px' }}
           />
+          
+          {!resumeFile && (
+            <>
+              <p style={{ margin: '5px 0', fontSize: '12px', color: '#666' }}>- OR paste text instead -</p>
+              <textarea 
+                rows="4" 
+                style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
+                placeholder="Paste your resume details..."
+                value={resumeText}
+                onChange={(e) => setResumeText(e.target.value)}
+              />
+            </>
+          )}
         </div>
 
         <div>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>Paste Job Description:</label>
           <textarea 
-            rows="6" 
+            rows="5" 
             style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
-            placeholder="Paste the target job requirements here..."
+            placeholder="Paste target job requirements here..."
             value={jobDescription}
             onChange={(e) => setJobDescription(e.target.value)}
             required
@@ -76,7 +90,7 @@ function App() {
           disabled={loading}
           style={{ padding: '12px', background: '#007BFF', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
         >
-          {loading ? 'Analyzing Profile...' : 'Run ATS Scanner'}
+          {loading ? 'Analyzing Application...' : 'Run ATS Scanner'}
         </button>
       </form>
 
@@ -86,17 +100,12 @@ function App() {
         <div style={{ marginTop: '30px', padding: '20px', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
           <h2>📊 Scanner Diagnostics</h2>
           <h3 style={{ color: '#2b6cb0' }}>ATS Match Score: {result.ats_score}</h3>
-          
           <h4>🔍 Key Words Missing From Your Resume:</h4>
-          {result.missing_keywords.length > 0 ? (
-            <ul>
-              {result.missing_keywords.map((word, idx) => (
-                <li key={idx} style={{ color: '#dd6b20', fontWeight: '500' }}>{word}</li>
-              ))}
-            </ul>
-          ) : (
-            <p style={{ color: 'green' }}>✅ Excellent keyword matching! Your profile covers the core terms.</p>
-          )}
+          <ul>
+            {result.missing_keywords.map((word, idx) => (
+              <li key={idx} style={{ color: '#dd6b20' }}>{word}</li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
