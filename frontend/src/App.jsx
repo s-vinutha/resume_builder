@@ -97,16 +97,28 @@ function App() {
       {error && <p style={{ color: 'red', marginTop: '15px' }}>⚠️ {error}</p>}
 
       {result && (
-        <div style={{ marginTop: '30px', padding: '20px', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-          <h2>📊 Scanner Diagnostics</h2>
-          <h3 style={{ color: '#2b6cb0' }}>ATS Match Score: {result.ats_score}</h3>
-          <h4>🔍 Key Words Missing From Your Resume:</h4>
-          <ul>
-            {result.missing_keywords.map((word, idx) => (
-              <li key={idx} style={{ color: '#dd6b20' }}>{word}</li>
-            ))}
-          </ul>
-        </div>
+        <div style={{ marginTop: '30px', padding: '20px', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #e2e8f0', color: '#1a202c' }}>
+    <h2>📊 Scanner Diagnostics</h2>
+    
+    {/* Dynamic Gauge Chart */}
+    <div style={{ width: '100%', height: 200, display: 'flex', justifyContent: 'center' }}>
+      <ResponsiveContainer width="50%" height="100%">
+        <RadialBarChart cx="50%" cy="50%" innerRadius="70%" outerRadius="100%" barSize={15} data={[{ name: 'Score', value: parseFloat(result.ats_score), fill: '#2b6cb0' }]} startAngle={180} endAngle={0}>
+          <RadialBar minAngle={15} background clockWise dataKey="value" />
+          <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="progress-label" style={{ fontSize: '24px', fontWeight: 'bold', fill: '#2b6cb0' }}>
+            {result.ats_score}
+          </text>
+        </RadialBarChart>
+      </ResponsiveContainer>
+    </div>
+
+    <h4 style={{ color: '#2d3748' }}>🔍 Key Words Missing From Your Resume:</h4>
+    <ul style={{ paddingLeft: '20px' }}>
+      {result.missing_keywords.map((word, idx) => (
+        <li key={idx} style={{ color: '#dd6b20', fontWeight: 'bold' }}>{word}</li>
+      ))}
+    </ul>
+  </div>
       )}
     </div>
   );
