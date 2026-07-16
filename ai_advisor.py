@@ -1,4 +1,26 @@
 class OnDeviceCareerAI:
+    def generate_standalone_audit_strategy(self, critiques):
+        """
+        Maps structural layout flags directly to on-device AI responses.
+        """
+        ai_advices = []
+        if not critiques:
+            return ["🚀 AI Core Optimization: Your document is structurally optimized! Try adjusting standard text spacing variables to preserve layout constraints."]
+            
+        for critique in critiques:
+            if "Action Verbs" in critique:
+                ai_advices.append("💡 AI Advice: Review your work bullets. Ensure every phrase begins with an active ownership verb rather than passive phrases like 'Responsible for'.")
+            elif "Quantifiable Impact" in critique:
+                ai_advices.append("💡 AI Advice: Add numbers. Look at your tasks and state the direct result: 'Optimized asset delivery pipeline, boosting application rendering speed by 24%'.")
+            elif "Summary" in critique:
+                ai_advices.append("💡 AI Advice: Draft a clean 3-line paragraph below your header highlighting your core technical competencies and target career path.")
+            elif "Track Record" in critique:
+                ai_advices.append("💡 AI Advice: Flesh out your profile layout by breaking academic assignments, open-source work, or bootcamps into individual time tracks.")
+            elif "Anchors" in critique:
+                ai_advices.append("💡 AI Advice: Stick to common standard headings. Standard software parsers struggle with creative custom section titles.")
+
+        return ai_advices
+    
     def generate_tailored_strategy(self, resume_text, missing_keywords, company_name=None):
         """
         Calculates actionable recommendations and tailored projects 
