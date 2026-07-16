@@ -25,11 +25,13 @@ function App() {
   const [education, setEducation] = useState([{ school: '', degree: '', dates: '' }]);
   const [projects, setProjects] = useState([{ name: '', description: '', techStack: '', timeline: '' }]);
   
-  // New States for Builder Analytics & Scoring Integration
-  const [builderJobDescription, setBuilderJobDescription] = useState('');
-  const [builderCompanyName, setBuilderCompanyName] = useState('');
-  const [builderResult, setBuilderResult] = useState(null);
-  const [builderLoading, setBuilderLoading] = useState(false);
+  // NEW: Dynamic Custom Section States (Optional Section Builder)
+  const [customSectionTitle, setCustomSectionTitle] = useState('');
+  const [customSectionContent, setCustomSectionContent] = useState('');
+
+  // UI Flow Control States
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [validationError, setValidationError] = useState('');
 
   const handlePersonalChange = (e) => {
     setPersonalInfo({ ...personalInfo, [e.target.name]: e.target.value });
@@ -57,49 +59,68 @@ function App() {
     setProjects(updated);
   };
 
-  // Helper to compile the structural form elements into plain text for the AI engine
-  const compileFormToText = () => {
-    let text = `${personalInfo.fullName}\n${personalInfo.email} | ${personalInfo.phone} | ${personalInfo.location}\n`;
-    text += `Skills: ${skills}\n\nExperience:\n`;
-    experiences.forEach(exp => {
-      text += `${exp.role} at ${exp.company} (${exp.dates})\n${exp.bulletPoints}\n`;
-    });
-    text += `\nProjects:\n`;
-    projects.forEach(proj => {
-      text += `${proj.name} [${proj.techStack}] (${proj.timeline})\n${proj.description}\n`;
-    });
-    text += `\nEducation:\n`;
-    education.forEach(edu => {
-      text += `${edu.degree} from ${edu.school} (${edu.dates})\n`;
-    });
-    return text;
+  // --- Comprehensive Validation Engine ---
+  const validateAllFields = () => {
+    // 1. Check basic header info (Mandatory)
+    if (!personalInfo.fullName.trim() || !personalInfo.email.trim() || 
+        !personalInfo.phone.trim() || !personalInfo.location.trim() || 
+        !personalInfo.github.trim() || !personalInfo.linkedin.trim()) {
+      return "Missing Information: Please completely fill out all fields in the 'Personal Information' card.";
+    }
+
+    // 2. Check technical stack matrix input (Mandatory)
+    if (!skills.trim()) {
+      return "Missing Information: Please list your technical competencies inside the Skills Matrix input.";
+    }
+
+    // 3. Validate workplace items ONLY if the user filled something out (Now completely non-mandatory)
+    for (let i = 0; i < experiences.length; i++) {
+      const exp = experiences[i];
+      const hasAnyValue = exp.company.trim() || exp.role.trim() || exp.dates.trim() || exp.bulletPoints.trim();
+      
+      if (hasAnyValue) {
+        if (!exp.company.trim() || !exp.role.trim() || !exp.dates.trim() || !exp.bulletPoints.trim()) {
+          return `Incomplete Workplace Entry: Card #${i + 1} has empty slots. Fill out Company, Role, Dates, and Achievement Bullet Logs completely, or leave the card entirely blank.`;
+        }
+      }
+    }
+
+    // 4. Validate engineering project card blocks (Mandatory)
+    for (let i = 0; i < projects.length; i++) {
+      const proj = projects[i];
+      if (!proj.name.trim() || !proj.techStack.trim() || !proj.timeline.trim() || !proj.description.trim()) {
+        return `Missing Information: Project Entry #${i + 1} has empty slots. Fill out Title, Tech Stack, Timeline, and Descriptions completely.`;
+      }
+    }
+
+    // 5. Validate academic tracking rows (Mandatory)
+    for (let i = 0; i < education.length; i++) {
+      const edu = education[i];
+      if (!edu.school.trim() || !edu.degree.trim() || !edu.dates.trim()) {
+        return `Missing Information: Education Qualification Card #${i + 1} requires absolute completion (Institution, Degree, and Timeline fields).`;
+      }
+    }
+
+    // 6. Dynamic Custom Section (Optional): If content is written, make sure header is present
+    if (customSectionContent.trim() && !customSectionTitle.trim()) {
+      return "Missing Section Title: You added bullet points to your custom section but forgot to write a Title header!";
+    }
+
+    return null; // Passes verification checks perfectly
   };
 
-  // --- Run AI Diagnostics inside the Resume Maker ---
-  const handleAnalyzeBuilderResume = async () => {
-    setBuilderLoading(true);
-    setError('');
-    setBuilderResult(null);
-
-    const compiledText = compileFormToText();
-    const formDataPayload = new FormData();
-    formDataPayload.append('company_name', builderCompanyName);
-    formDataPayload.append('resume', compiledText);
-    formDataPayload.append('job_description', builderJobDescription);
-
-    try {
-      const response = await fetch('http://127.0.0.1:5001/api/analyze', { method: 'POST', body: formDataPayload });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Something went wrong');
-      setBuilderResult(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBuilderLoading(false);
+  const handleProceedToPreview = () => {
+    const fieldError = validateAllFields();
+    if (fieldError) {
+      setValidationError(fieldError);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      setValidationError('');
+      setIsPreviewMode(true);
     }
   };
 
-  // --- ATS-Compliant PDF Compiler ---
+  // --- ATS-Compliant PDF Compiler Engine ---
   const generatePDF = () => {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'letter' });
     const margin = 0.75;
@@ -120,7 +141,7 @@ function App() {
 
     doc.setFont('Helvetica', 'bold');
     doc.setFontSize(18);
-    doc.text(personalInfo.fullName || 'YOUR NAME', 4.25, y, { align: 'center' });
+    doc.text(personalInfo.fullName, 4.25, y, { align: 'center' });
     
     y += 0.22;
     doc.setFont('Helvetica', 'normal');
@@ -143,18 +164,18 @@ function App() {
       y += splitSkills.length * 0.2;
     }
 
-    if (experiences.some(exp => exp.company || exp.role)) {
+    // Mapped safely only if at least one operational workplace string exists
+    const validExperiences = experiences.filter(exp => exp.company.trim() && exp.role.trim());
+    if (validExperiences.length > 0) {
       addSectionHeader('Professional Experience');
-      experiences.forEach((exp) => {
-        if (!exp.company && !exp.role) return;
-        
+      validExperiences.forEach((exp) => {
         doc.setFont('Helvetica', 'bold');
         doc.setFontSize(10.5);
         doc.setTextColor(45, 55, 72);
-        doc.text(exp.role || 'Role Title', margin, y);
+        doc.text(exp.role, margin, y);
         
         doc.setFont('Helvetica', 'normal');
-        doc.text(`${exp.company || 'Company'}  |  ${exp.dates || 'Dates'}`, 8.5 - margin, y, { align: 'right' });
+        doc.text(`${exp.company}  |  ${exp.dates}`, 8.5 - margin, y, { align: 'right' });
         y += 0.2;
 
         if (exp.bulletPoints) {
@@ -172,11 +193,9 @@ function App() {
       });
     }
 
-    if (projects.some(proj => proj.name)) {
+    if (projects.length > 0) {
       addSectionHeader('Projects');
       projects.forEach((proj) => {
-        if (!proj.name) return;
-
         doc.setFont('Helvetica', 'bold');
         doc.setFontSize(10.5);
         doc.setTextColor(45, 55, 72);
@@ -215,20 +234,36 @@ function App() {
       });
     }
 
-    if (education.some(edu => edu.school)) {
+    if (education.length > 0) {
       addSectionHeader('Education');
       education.forEach((edu) => {
-        if (!edu.school) return;
         doc.setFont('Helvetica', 'bold');
         doc.setFontSize(10.5);
-        doc.text(edu.degree || 'Degree details', margin, y);
+        doc.text(edu.degree, margin, y);
         doc.setFont('Helvetica', 'normal');
         doc.text(`${edu.school}  |  ${edu.dates}`, 8.5 - margin, y, { align: 'right' });
         y += 0.22;
       });
     }
 
-    const fileName = `${(personalInfo.fullName || 'Resume').replace(/\s+/g, '_')}_Built_Resume.pdf`;
+    // Dynamic Custom Area rendering in PDF output
+    if (customSectionTitle.trim() && customSectionContent.trim()) {
+      addSectionHeader(customSectionTitle);
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(45, 55, 72);
+
+      const lines = customSectionContent.split('\n');
+      lines.forEach((line) => {
+        if (!line.trim()) return;
+        const cleanLine = line.startsWith('-') ? line.substring(1).trim() : line.trim();
+        const splitLine = doc.splitTextToSize(`•  ${cleanLine}`, 6.8);
+        doc.text(splitLine, margin + 0.15, y);
+        y += splitLine.length * 0.18;
+      });
+    }
+
+    const fileName = `${personalInfo.fullName.replace(/\s+/g, '_')}_Built_Resume.pdf`;
     doc.save(fileName);
   };
 
@@ -266,8 +301,8 @@ function App() {
   };
 
   // Styles Setup
-  const containerStyle = { maxWidth: '1100px', margin: '40px auto', padding: '0 24px', fontFamily: '"Inter", -apple-system, sans-serif', color: '#f8fafc' };
-  const cardStyle = { background: '#1e293b', padding: '32px', borderRadius: '16px', border: '1px solid #334155', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' };
+  const containerStyle = { maxWidth: '1000px', margin: '40px auto', padding: '0 24px', fontFamily: '"Inter", -apple-system, sans-serif', color: '#f8fafc' };
+  const cardStyle = { background: '#1e293b', padding: '32px', borderRadius: '16px', border: '1px solid #334155', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', marginBottom: '4px' };
   const inputStyle = { padding: '12px 16px', borderRadius: '8px', border: '1px solid #475569', fontSize: '14px', width: '100%', boxSizing: 'border-box', outline: 'none', transition: 'border 0.2s', background: '#0f172a', color: '#ffffff', marginBottom: '12px' };
   const primaryBtnStyle = { padding: '12px 24px', background: '#38bdf8', color: '#0f172a', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '14px', transition: 'background 0.2s' };
   const labelStyle = { display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '6px', color: '#cbd5e1' };
@@ -404,7 +439,7 @@ function App() {
               <h4 style={{ color: '#cbd5e1', margin: '0 0 12px 0', fontSize: '15px', fontWeight: '700' }}>🔍 Targeted Missing Industry Terminology Badges</h4>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {result.missing_keywords?.map((word, idx) => (
-                  <span key={idx} style={{ padding: '6px 14px', background: '#1e293b', color: '#94a3b8', borderRadius: '20px', fontSize: '13px', fontWeight: '600', border: '1px solid #334155' }}>{word}</span>
+                  <span key={idx} style={{ padding: '6px 14px', background: '#1e293b', color: '#94a3b8', borderRadius: '20px', fontSize: '13px', fontWeight: '600', border: '1px solid #334155 1px solid #334155' }}>{word}</span>
                 ))}
               </div>
             </div>
@@ -412,61 +447,61 @@ function App() {
         </div>
       )}
 
-      {/* 📝 SPLIT SCREEN RESUME BUILDER + LIVE PREVIEW & AI DIAGNOSTICS VIEW */}
+      {/* 📝 RESUME BUILDER PANEL */}
       {currentView === 'builder' && (
         <div>
           <button 
-            onClick={() => setCurrentView('landing')} 
+            onClick={() => {
+              if (isPreviewMode) {
+                setIsPreviewMode(false);
+              } else {
+                setCurrentView('landing');
+              }
+            }} 
             style={backBtnStyle}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#38bdf8'; e.currentTarget.style.background = '#0f172a'; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.background = '#1e293b'; }}
           >
-            ⟨ Back to Dashboard
+            {isPreviewMode ? '⟨ Return to Form Editor' : '⟨ Back to Dashboard'}
           </button>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '32px', alignItems: 'start' }}>
-            
-            {/* LEFT COLUMN: BUILDER CONFIGURATOR FORM */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+          {validationError && (
+            <div style={{ padding: '16px', background: '#ef4444', color: '#ffffff', borderRadius: '8px', fontWeight: '600', fontSize: '14px', marginBottom: '24px', border: '1px solid #b91c1c' }}>
+              ⚠️ {validationError}
+            </div>
+          )}
+
+          {!isPreviewMode ? (
+            /* PHASE A: FORM INPUT SYSTEM */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '800px', margin: '0 auto' }}>
               <h2 style={{ fontSize: '28px', fontWeight: '800', color: '#ffffff', margin: 0 }}>Resume Blueprint Configurator</h2>
               
-              {/* Target Goal Input for Real-Time Analysis */}
-              <div style={cardStyle}>
-                <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '700', color: '#38bdf8' }}>🎯 Target AI Goal Checklist</h3>
-                <label style={labelStyle}>Target Company Name</label>
-                <input type="text" placeholder="e.g. Adobe, Google" value={builderCompanyName} onChange={(e) => setBuilderCompanyName(e.target.value)} style={inputStyle} />
-                
-                <label style={labelStyle}>Target Job Requirements / Role Title</label>
-                <textarea rows="3" placeholder="Paste target description criteria or title here to score yourself..." value={builderJobDescription} onChange={(e) => setBuilderJobDescription(e.target.value)} style={inputStyle} />
-                
-                <button type="button" onClick={handleAnalyzeBuilderResume} disabled={builderLoading || !builderJobDescription} style={{ ...primaryBtnStyle, width: '100%', marginTop: '4px' }}>
-                  {builderLoading ? 'Running Local AI Evaluator Engine...' : 'Calculate ATS Metrics & Inferences'}
-                </button>
-              </div>
-
-              {/* Personal Info Box */}
+              {/* Personal Details */}
               <div style={cardStyle}>
                 <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>👤 Personal Information</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div><label style={labelStyle}>Full Name</label><input type="text" name="fullName" style={inputStyle} placeholder="John Doe" onChange={handlePersonalChange} /></div>
-                  <div><label style={labelStyle}>Email Address</label><input type="email" name="email" style={inputStyle} placeholder="john@example.com" onChange={handlePersonalChange} /></div>
-                  <div><label style={labelStyle}>Phone Number</label><input type="text" name="phone" style={inputStyle} placeholder="+91 9999999999" onChange={handlePersonalChange} /></div>
-                  <div><label style={labelStyle}>Location</label><input type="text" name="location" style={inputStyle} placeholder="Bengaluru, India" onChange={handlePersonalChange} /></div>
-                  <div><label style={labelStyle}>LinkedIn URL</label><input type="text" name="linkedin" style={inputStyle} placeholder="linkedin.com/in/username" onChange={handlePersonalChange} /></div>
-                  <div><label style={labelStyle}>GitHub URL</label><input type="text" name="github" style={inputStyle} placeholder="github.com/username" onChange={handlePersonalChange} /></div>
+                  <div><label style={labelStyle}>Full Name</label><input type="text" name="fullName" value={personalInfo.fullName} style={inputStyle} placeholder="John Doe" onChange={handlePersonalChange} /></div>
+                  <div><label style={labelStyle}>Email Address</label><input type="email" name="email" value={personalInfo.email} style={inputStyle} placeholder="john@example.com" onChange={handlePersonalChange} /></div>
+                  <div><label style={labelStyle}>Phone Number</label><input type="text" name="phone" value={personalInfo.phone} style={inputStyle} placeholder="+91 9999999999" onChange={handlePersonalChange} /></div>
+                  <div><label style={labelStyle}>Location</label><input type="text" name="location" value={personalInfo.location} style={inputStyle} placeholder="Bengaluru, India" onChange={handlePersonalChange} /></div>
+                  <div><label style={labelStyle}>LinkedIn URL</label><input type="text" name="linkedin" value={personalInfo.linkedin} style={inputStyle} placeholder="linkedin.com/in/username" onChange={handlePersonalChange} /></div>
+                  <div><label style={labelStyle}>GitHub URL</label><input type="text" name="github" value={personalInfo.github} style={inputStyle} placeholder="github.com/username" onChange={handlePersonalChange} /></div>
                 </div>
               </div>
 
-              {/* Technical Skills Box */}
+              {/* Skills Matrix */}
               <div style={cardStyle}>
                 <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>🛠 Technical Skills Matrix</h3>
                 <label style={labelStyle}>Core Frameworks & Tools (Comma Separated)</label>
                 <input type="text" placeholder="Python, React, Docker..." value={skills} onChange={(e) => setSkills(e.target.value)} style={inputStyle} />
               </div>
 
-              {/* Experience Box */}
+              {/* Work Experience (FULLY OPTIONAL / NON-MANDATORY) */}
               <div style={cardStyle}>
-                <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>💼 Professional Track Records</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>💼 Professional Track Records</h3>
+                  <span style={{ fontSize: '12px', color: '#94a3b8', background: '#334155', padding: '4px 10px', borderRadius: '12px', fontWeight: '600' }}>Optional Section</span>
+                </div>
                 {experiences.map((exp, index) => (
                   <div key={index} style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: index !== experiences.length - 1 ? '1px solid #334155' : 'none' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '12px' }}>
@@ -481,7 +516,7 @@ function App() {
                 <button onClick={addExperience} style={secondaryBtnStyle}>➕ Add Workplace Entry</button>
               </div>
 
-              {/* Projects Box */}
+              {/* Projects Card */}
               <div style={cardStyle}>
                 <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>🚀 Engineering Projects</h3>
                 {projects.map((proj, index) => (
@@ -498,7 +533,7 @@ function App() {
                 <button onClick={addProject} style={secondaryBtnStyle}>➕ Add Project Entry</button>
               </div>
 
-              {/* Education Box */}
+              {/* Education Card */}
               <div style={cardStyle}>
                 <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>🎓 Academic Credentials</h3>
                 {education.map((edu, index) => (
@@ -510,47 +545,46 @@ function App() {
                 ))}
                 <button onClick={addEducation} style={{ ...secondaryBtnStyle, marginTop: '8px' }}>➕ Add Academic Qualification</button>
               </div>
-            </div>
 
-            {/* RIGHT COLUMN: STICKY LIVE PREVIEW PANEL + LIVE AI SCORE */}
-            <div style={{ position: 'sticky', top: '40px', display: 'flex', flexDirection: 'column', gap: '24px', maxHeight: '90vh', overflowY: 'auto', paddingRight: '4px' }}>
-              
-              {/* Trigger Action Layout */}
-              <button onClick={generatePDF} style={{ ...primaryBtnStyle, background: '#22c55e', color: '#0f172a', padding: '16px', fontSize: '16px', boxShadow: '0 4px 14px rgb(34 197 94 / 0.3)' }}>
-                📥 Compile & Download Clean PDF Document
-              </button>
-
-              {/* LIVE ATS SCORE & RECOMMENDATIONS DISPLAY */}
-              {builderResult && (
-                <div style={{ ...cardStyle, borderColor: '#334155', background: '#0f172a' }}>
-                  <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '800', textTransform: 'uppercase', color: '#38bdf8', textAlign: 'center' }}>📈 Active Blueprint Diagnostics</h3>
-                  
-                  <div style={{ height: 120, display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
-                    <ResponsiveContainer width="60%" height="100%">
-                      <RadialBarChart cx="50%" cy="80%" innerRadius="80%" outerRadius="110%" barSize={10} data={[{ name: 'Max', value: 100, fill: '#1e293b' }, { name: 'Score', value: parseFloat(builderResult.ats_score), fill: '#4ade80' }]} startAngle={180} endAngle={0}>
-                        <RadialBar clockWise={true} dataKey="value" cornerRadius={6} />
-                        <text x="50%" y="75%" textAnchor="middle" dominantBaseline="middle" style={{ fontSize: '22px', fontWeight: '800', fill: '#ffffff' }}>{builderResult.ats_score}%</text>
-                      </RadialBarChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  <div style={{ fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '8px', color: '#cbd5e1' }}>
-                    <div><strong style={{ color: '#38bdf8' }}>AI Project Recommendation:</strong> {builderResult.recommended_skills?.[0]}</div>
-                    <div><strong style={{ color: '#eab308' }}>Company Strategy Match:</strong> {builderResult.company_insights?.[0]}</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
-                      {builderResult.missing_keywords?.map((word, i) => (
-                        <span key={i} style={{ padding: '4px 8px', background: '#1e293b', border: '1px solid #334155', borderRadius: '4px', fontSize: '11px', color: '#94a3b8' }}>{word}</span>
-                      ))}
-                    </div>
-                  </div>
+              {/* NEW SECTION: EXCLUSIVE CUSTOM USER-DEFINED GRID SECTION (NON-MANDATORY) */}
+              <div style={cardStyle}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>✨ Custom Section Builder</h3>
+                  <span style={{ fontSize: '12px', color: '#94a3b8', background: '#334155', padding: '4px 10px', borderRadius: '12px', fontWeight: '600' }}>Optional Section</span>
                 </div>
-              )}
+                <div>
+                  <label style={labelStyle}>Section Header / Title</label>
+                  <input type="text" placeholder="e.g., Certifications, Key Achievements, Extracurriculars" value={customSectionTitle} onChange={(e) => setCustomSectionTitle(e.target.value)} style={inputStyle} />
+                  
+                  <label style={labelStyle}>Content Logs (One entry per line)</label>
+                  <textarea rows="4" placeholder="- Certified Azure Cloud Practitioner (2026)&#10;- Winner of State Level Coding Olympiad Hackathon" value={customSectionContent} onChange={(e) => setCustomSectionContent(e.target.value)} style={inputStyle} />
+                </div>
+              </div>
 
-              {/* CHRONOLOGICAL ATS AESTHETIC PREVIEW CANVAS */}
-              <div style={{ background: '#ffffff', color: '#1e293b', borderRadius: '8px', padding: '40px 32px', minHeight: '600px', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.3)', fontFamily: 'Helvetica, Arial, sans-serif' }}>
-                {/* Header */}
+              {/* Trigger Button */}
+              <button onClick={handleProceedToPreview} style={{ ...primaryBtnStyle, padding: '16px', fontSize: '16px', fontWeight: 'bold' }}>
+                🔍 Proceed to Layout Preview Document
+              </button>
+            </div>
+          ) : (
+            /* PHASE B: FULL PAGE REAL-TIME TEMPLATE PREVIEW CANVAS */
+            <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <button onClick={() => setIsPreviewMode(false)} style={{ ...secondaryBtnStyle, flex: 1 }}>
+                  ✏️ Return and Edit Fields
+                </button>
+                <button onClick={generatePDF} style={{ ...primaryBtnStyle, background: '#22c55e', color: '#0f172a', flex: 1, fontWeight: '700', boxShadow: '0 4px 14px rgb(34 197 94 / 0.3)' }}>
+                  📥 Download Clean PDF Artifact
+                </button>
+              </div>
+
+              {/* THE WHITE CHRONOLOGICAL PAPER SHEET PREVIEW */}
+              <div style={{ background: '#ffffff', color: '#1e293b', borderRadius: '8px', padding: '44px 40px', minHeight: '750px', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.3)', fontFamily: 'Helvetica, Arial, sans-serif' }}>
+                
+                {/* Contact Header Block */}
                 <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                  <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#1a202c', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{personalInfo.fullName || 'YOUR FULL NAME'}</div>
+                  <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#1a202c', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{personalInfo.fullName}</div>
                   <div style={{ fontSize: '10px', color: '#4a5568', marginTop: '6px', fontWeight: '500' }}>
                     {[personalInfo.email, personalInfo.phone, personalInfo.location].filter(Boolean).join('   |   ')}
                   </div>
@@ -559,69 +593,73 @@ function App() {
                   </div>
                 </div>
 
-                {/* Technical Skills Preview */}
-                {skills && (
+                {/* Technical Competencies Block */}
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 'bold', borderBottom: '1px solid #cbd5e0', paddingBottom: '2px', color: '#1a202c', textTransform: 'uppercase' }}>Technical Skills</div>
+                  <div style={{ fontSize: '10px', marginTop: '6px', color: '#2d3748', lineHeight: '1.5' }}>
+                    <strong>Core Frameworks & Stack Tools:</strong> {skills}
+                  </div>
+                </div>
+
+                {/* Work Track Block (Conditionally Renders Only If Filled Out) */}
+                {experiences.some(exp => exp.company.trim() && exp.role.trim()) && (
                   <div style={{ marginBottom: '16px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 'bold', borderBottom: '1px solid #cbd5e0', paddingBottom: '2px', color: '#1a202c', textTransform: 'uppercase' }}>Technical Skills</div>
-                    <div style={{ fontSize: '10px', marginTop: '6px', color: '#2d3748', lineHeight: '1.5' }}>
-                      <strong>Core Frameworks & Stack Tools:</strong> {skills}
+                    <div style={{ fontSize: '11px', fontWeight: 'bold', borderBottom: '1px solid #cbd5e0', paddingBottom: '2px', color: '#1a202c', textTransform: 'uppercase' }}>Professional Experience</div>
+                    {experiences.map((exp, i) => (exp.company.trim() || exp.role.trim()) && (
+                      <div key={i} style={{ marginTop: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', fontSize: '10.5px', fontWeight: 'bold', color: '#2d3748' }}>
+                          <span>{exp.role}</span>
+                          <span style={{ fontWeight: 'normal', color: '#4a5568', marginLeft: 'auto', fontSize: '9.5px' }}>{exp.company} | {exp.dates}</span>
+                        </div>
+                        <div style={{ fontSize: '9.5px', marginTop: '4px', color: '#4a5568', whiteSpace: 'pre-line', paddingLeft: '8px', lineHeight: '1.5' }}>
+                          {exp.bulletPoints.split('\n').map(line => line.trim() ? `• ${line.replace(/^-\s*/, '')}` : '').filter(Boolean).join('\n')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Projects Canvas Block */}
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 'bold', borderBottom: '1px solid #cbd5e0', paddingBottom: '2px', color: '#1a202c', textTransform: 'uppercase' }}>Engineering Projects</div>
+                  {projects.map((proj, i) => (
+                    <div key={i} style={{ marginTop: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', fontSize: '10.5px', fontWeight: 'bold', color: '#2d3748' }}>
+                        <span>{proj.name}</span>
+                        <span style={{ fontWeight: 'normal', color: '#4a5568', marginLeft: 'auto', fontSize: '9.5px' }}>{proj.timeline}</span>
+                      </div>
+                      <div style={{ fontSize: '9px', fontStyle: 'italic', color: '#718096', marginTop: '2px' }}>Tech Stack: {proj.techStack}</div>
+                      <div style={{ fontSize: '9.5px', marginTop: '4px', color: '#4a5568', whiteSpace: 'pre-line', paddingLeft: '8px', lineHeight: '1.5' }}>
+                        {proj.description.split('\n').map(line => line.trim() ? `• ${line.replace(/^-\s*/, '')}` : '').filter(Boolean).join('\n')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Academics Canvas Block */}
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 'bold', borderBottom: '1px solid #cbd5e0', paddingBottom: '2px', color: '#1a202c', textTransform: 'uppercase' }}>Education</div>
+                  {education.map((edu, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', fontSize: '10.5px', marginTop: '6px', color: '#2d3748' }}>
+                      <span style={{ fontWeight: 'bold' }}>{edu.degree}</span>
+                      <span style={{ color: '#4a5568', marginLeft: 'auto', fontSize: '9.5px' }}>{edu.school} | {edu.dates}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* DYNAMIC CUSTOM USER SECTION PREVIEW (Conditionally Renders Only If Filled Out) */}
+                {customSectionTitle.trim() && customSectionContent.trim() && (
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: 'bold', borderBottom: '1px solid #cbd5e0', paddingBottom: '2px', color: '#1a202c', textTransform: 'uppercase' }}>{customSectionTitle}</div>
+                    <div style={{ fontSize: '9.5px', marginTop: '6px', color: '#4a5568', whiteSpace: 'pre-line', paddingLeft: '8px', lineHeight: '1.5' }}>
+                      {customSectionContent.split('\n').map(line => line.trim() ? `• ${line.replace(/^-\s*/, '')}` : '').filter(Boolean).join('\n')}
                     </div>
                   </div>
                 )}
 
-                {/* Experience Preview */}
-                {experiences.some(e => e.company || e.role) && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 'bold', borderBottom: '1px solid #cbd5e0', paddingBottom: '2px', color: '#1a202c', textTransform: 'uppercase' }}>Professional Experience</div>
-                    {experiences.map((exp, i) => (exp.company || exp.role) && (
-                      <div key={i} style={{ marginTop: '8px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', fontSize: '10.5px', fontWeight: 'bold', color: '#2d3748' }}>
-                          <span>{exp.role || 'Designated Role'}</span>
-                          <span style={{ fontWeight: 'normal', color: '#4a5568', marginLeft: 'auto', fontSize: '9.5px' }}>{exp.company || 'Organization'} | {exp.dates || 'Timeline'}</span>
-                        </div>
-                        <div style={{ fontSize: '9.5px', marginTop: '4px', color: '#4a5568', whiteSpace: 'pre-line', paddingLeft: '8px', lineHeight: '1.5' }}>
-                          {exp.bulletPoints ? exp.bulletPoints.split('\n').map(line => line.trim() ? `• ${line.replace(/^-\s*/, '')}` : '').join('\n') : '• Milestone logs and development highlights...'}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Projects Preview */}
-                {projects.some(p => p.name) && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 'bold', borderBottom: '1px solid #cbd5e0', paddingBottom: '2px', color: '#1a202c', textTransform: 'uppercase' }}>Engineering Projects</div>
-                    {projects.map((proj, i) => proj.name && (
-                      <div key={i} style={{ marginTop: '8px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', fontSize: '10.5px', fontWeight: 'bold', color: '#2d3748' }}>
-                          <span>{proj.name}</span>
-                          <span style={{ fontWeight: 'normal', color: '#4a5568', marginLeft: 'auto', fontSize: '9.5px' }}>{proj.timeline}</span>
-                        </div>
-                        {proj.techStack && <div style={{ fontSize: '9px', fontStyle: 'italic', color: '#718096', marginTop: '2px' }}>Tech Stack: {proj.techStack}</div>}
-                        <div style={{ fontSize: '9.5px', marginTop: '4px', color: '#4a5568', whiteSpace: 'pre-line', paddingLeft: '8px', lineHeight: '1.5' }}>
-                          {proj.description ? proj.description.split('\n').map(line => line.trim() ? `• ${line.replace(/^-\s*/, '')}` : '').join('\n') : '• Core metrics drop benchmarks and performance attributes...'}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Education Preview */}
-                {education.some(e => e.school) && (
-                  <div style={{ marginBottom: '8px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 'bold', borderBottom: '1px solid #cbd5e0', paddingBottom: '2px', color: '#1a202c', textTransform: 'uppercase' }}>Education</div>
-                    {education.map((edu, i) => edu.school && (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', fontSize: '10.5px', marginTop: '6px', color: '#2d3748' }}>
-                        <span style={{ fontWeight: 'bold' }}>{edu.degree || 'Degree details'}</span>
-                        <span style={{ color: '#4a5568', marginLeft: 'auto', fontSize: '9.5px' }}>{edu.school} | {edu.dates}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
-
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>
