@@ -1,54 +1,49 @@
-import sys
-from transformers import pipeline
-
 class OnDeviceCareerAI:
-    def __init__(self):
-        print("🤖 Initializing Local AI Component (Zero API Keys required)...")
-        # Using a highly responsive, optimized small text pipeline model
-        # it downloads once, caches locally, and processes text entirely offline
-        self.generator = pipeline(
-            "text2text-generation", 
-            model="google/flan-t5-base",
-            device=-1 # Forces CPU execution so it runs on any laptop without a GPU
-        )
-
-    def analyze_profile_gaps(self, resume_text, job_input):
+    def generate_tailored_strategy(self, resume_text, missing_keywords, company_name=None):
         """
-        Uses an on-device language model to dynamically infer what skills are 
-        missing and how to optimize formatting based on textual signals.
+        Calculates actionable recommendations and tailored projects 
+        instantly based on identified technical keyword gaps.
         """
-        # Formulate a structured prompt for the localized AI model
-        prompt = (
-            f"Context: A candidate is applying for a position/description defined as '{job_input}'. "
-            f"Their current resume text content contains: '{resume_text[:600]}'. "
-            f"Task: Based on standard ATS guidelines, what are 2 high-impact technical skills "
-            f"or tools that this candidate must add to pass screening filters? Be specific."
-        )
+        # Select the top critical missing skills for tracking
+        tracked_skills = [w.upper() for w in missing_keywords[:3]]
         
-        try:
-            res = self.generator(prompt, max_length=120, num_return_sequences=1)
-            ai_output = res[0]['generated_text']
-        except Exception as e:
-            ai_output = "Incorporate advanced industry engineering tools relevant to " + str(job_input)
+        if not tracked_skills:
+            skills_phrase = "Advanced Generative AI Frameworks"
+            project_name = "Enterprise AI Orchestration Hub"
+            project_desc = "Design an orchestration layer integrating multiple LLMs, prompt pipelines, and continuous vector memory."
+        else:
+            skills_phrase = ", ".join(tracked_skills)
+            project_name = f"Intelligent {tracked_skills[0].title()} Integration Pipeline"
+            project_desc = f"Build an production-grade application leveraging {skills_phrase} to handle complex data indexing, semantic query vectors, and automated processing pipelines."
 
-        # Structure formatting directives dynamically based on content parsing length
-        formatting_tips = [
-            "📋 Layout Order: Maintain a strict top-down structure: Header -> Tech Skills -> Professional Experience -> Projects -> Education.",
-            "📐 Structural Balance: Use a single-column layout with 0.75-inch margins. Multi-column structures break basic text parsers.",
-            "🖋️ Action Verbs: Begin all project and experience bullet entries with robust verbs like 'Architected', 'Optimized', or 'Orchestrated'."
+        recommended_skills = [
+            f"🚀 Recommended Project: {project_name}",
+            f"💡 Technical Blueprint: {project_desc}"
         ]
-        
-        if len(resume_text) < 300:
-            formatting_tips.append("⚠️ Content Density Deficit: Your profile data layout is too brief. Expand achievements using the STAR methodology.")
-            
+
+        # Handle target corporate tracking insight blocks
+        if company_name and company_name.strip():
+            c_name = company_name.strip()
+            company_insights = [
+                f"🏢 Corporate Strategy: {c_name} requires strong hands-on ownership of foundational system concepts.",
+                f"🎯 Tactical Interview Target: Be prepared to discuss how you would architect microservices using {skills_phrase} to fit inside {c_name}'s production ecosystem."
+            ]
+        else:
+            company_insights = [
+                "💡 Corporate Intelligence: Add a specific company name in the form header inputs to generate customized interview alignment advice."
+            ]
+
+        formatting_rules = [
+            "📋 Layout Order: Maintain a strict top-down structure: Header -> Tech Skills -> Professional Experience -> Projects -> Education.",
+            "📐 Structural Balance: Use a crisp single-column configuration with standard 0.75-inch margins to keep text tracks clear for scanners.",
+            "🖋️ Impact Verbs: Ensure every project and job milestone bullet points begins with a strong action verb (e.g., 'Architected', 'Optimized')."
+        ]
+
         return {
-            "recommended_skills": [f"🤖 AI Inference: {ai_output}"],
-            "formatting_rules": formatting_tips
+            "recommended_skills": recommended_skills,
+            "company_insights": company_insights,
+            "formatting_rules": formatting_rules
         }
 
-# Singleton instance initialization helper
-try:
-    local_ai_engine = OnDeviceCareerAI()
-except Exception as e:
-    print(f"Fallback active: {e}")
-    local_ai_engine = None
+# Instantiate the engine smoothly
+local_ai_engine = OnDeviceCareerAI()

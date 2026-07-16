@@ -10,6 +10,8 @@ function App() {
   const [resumeText, setResumeText] = useState('');
   const [resumeFile, setResumeFile] = useState(null);
   const [jobDescription, setJobDescription] = useState('');
+  const [jdFile, setJdFile] = useState(null); 
+  const [companyName, setCompanyName] = useState(''); 
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -189,11 +191,18 @@ function App() {
     setResult(null);
 
     const formDataPayload = new FormData();
-    formDataPayload.append('job_description', jobDescription);
+    formDataPayload.append('company_name', companyName);
+    
     if (resumeFile) {
       formDataPayload.append('resume_file', resumeFile);
     } else {
       formDataPayload.append('resume', resumeText);
+    }
+
+    if (jdFile) {
+      formDataPayload.append('jd_file', jdFile);
+    } else {
+      formDataPayload.append('job_description', jobDescription);
     }
 
     try {
@@ -208,65 +217,64 @@ function App() {
     }
   };
 
-  // Modern Inline Sleek Element Styles
+  // Styles Setup
   const containerStyle = { maxWidth: '900px', margin: '40px auto', padding: '0 24px', fontFamily: '"Inter", -apple-system, sans-serif', color: '#f8fafc' };
   const cardStyle = { background: '#1e293b', padding: '32px', borderRadius: '16px', border: '1px solid #334155', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' };
-  const inputStyle = { padding: '12px 16px', borderRadius: '8px', border: '1px solid #475569', fontSize: '14px', width: '100%', boxSizing: 'border-box', outline: 'none', transition: 'border 0.2s', background: '#0f172a', color: '#ffffff' };
+  const inputStyle = { padding: '12px 16px', borderRadius: '8px', border: '1px solid #475569', fontSize: '14px', width: '100%', boxSizing: 'border-box', outline: 'none', transition: 'border 0.2s', background: '#0f172a', color: '#ffffff', marginBottom: '12px' };
   const primaryBtnStyle = { padding: '12px 24px', background: '#38bdf8', color: '#0f172a', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '14px', transition: 'background 0.2s' };
-  const secondaryBtnStyle = { padding: '12px 24px', background: '#1e293b', color: '#ffffff', border: '1px solid #475569', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' };
   const labelStyle = { display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '6px', color: '#cbd5e1' };
+  
+  // UPDATED: Modern Navigational Back Button Style Profile
+  const backBtnStyle = { 
+    padding: '10px 20px', 
+    background: '#1e293b', 
+    color: '#38bdf8', 
+    border: '1px solid #334155', 
+    borderRadius: '8px', 
+    cursor: 'pointer', 
+    fontWeight: '600', 
+    fontSize: '14px',
+    transition: 'all 0.2s ease',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginBottom: '32px'
+  };
+
+  // Dynamic Item Grid Button Style Profile
+  const secondaryBtnStyle = { padding: '12px 24px', background: '#1e293b', color: '#ffffff', border: '1px solid #475569', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' };
 
   return (
     <div style={containerStyle}>
       
-      {/* 🚀 VIBRANT HIGH-CONTRAST LANDING VIEW */}
+      {/* 🚀 LANDING VIEW */}
       {currentView === 'landing' && (
         <div style={{ textAlign: 'center', padding: '80px 20px' }}>
           <h1 style={{ fontSize: '42px', fontWeight: '800', letterSpacing: '-0.025em', marginBottom: '16px', color: '#ffffff' }}>AI Career Intelligence Suite</h1>
           <p style={{ color: '#94a3b8', fontSize: '16px', marginBottom: '56px', maxWidth: '600px', margin: '0 auto 56px', lineHeight: '1.6' }}>Optimize your professional footprint with automated grading algorithms and single-page layout generation engines.</p>
-          
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', maxWidth: '780px', margin: '0 auto' }}>
-            
-            {/* CARD 1: ATS SCORE CHECKER */}
-            <div 
-              onClick={() => setCurrentView('ats')} 
-              style={{ ...cardStyle, cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s ease' }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#38bdf8'; e.currentTarget.style.transform = 'translateY(-4px)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.transform = 'translateY(0)'; }}
-            >
+            <div onClick={() => setCurrentView('ats')} style={{ ...cardStyle, cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s ease' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#38bdf8'; e.currentTarget.style.transform = 'translateY(-4px)'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.transform = 'translateY(0)'; }}>
               <div style={{ width: '100%', height: '120px', display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '20px' }}>
-                <svg width="100" height="100" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="100" height="100" viewBox="0 0 24 24" fill="none">
                   <rect x="3" y="2" width="18" height="20" rx="2" stroke="#38bdf8" strokeWidth="1.5" fill="#0f172a" fillOpacity="0.5"/>
-                  <line x1="7" y1="7" x2="13" y2="7" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round"/>
-                  <line x1="7" y1="11" x2="17" y2="11" stroke="#475569" strokeWidth="1.5" strokeLinecap="round"/>
-                  <line x1="7" y1="15" x2="15" y2="15" stroke="#475569" strokeWidth="1.5" strokeLinecap="round"/>
+                  <line x1="7" y1="7" x2="13" y2="7" stroke="#38bdf8" strokeWidth="2"/>
                   <circle cx="17" cy="18" r="4" fill="#38bdf8" stroke="#0f172a" strokeWidth="1.5"/>
-                  <path d="M16 17L17 18L19 16" stroke="#0f172a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M16 17L17 18L19 16" stroke="#0f172a" strokeWidth="1.5"/>
                 </svg>
               </div>
-              <h3 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 12px 0', color: '#ffffff' }}>ATS Score Checker</h3>
-              <p style={{ fontSize: '14px', color: '#94a3b8', margin: 0, lineHeight: '1.5' }}>Scan your application text files against any job posting description instantly to surface gaps.</p>
+              <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#ffffff' }}>ATS Score Checker</h3>
+              <p style={{ fontSize: '14px', color: '#94a3b8', margin: 0 }}>Scan your application files against any job posting description instantly to surface gaps.</p>
             </div>
-
-            {/* CARD 2: CUSTOM RESUME MAKER */}
-            <div 
-              onClick={() => setCurrentView('builder')} 
-              style={{ ...cardStyle, cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s ease' }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#4ade80'; e.currentTarget.style.transform = 'translateY(-4px)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.transform = 'translateY(0)'; }}
-            >
+            <div onClick={() => setCurrentView('builder')} style={{ ...cardStyle, cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s ease' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#4ade80'; e.currentTarget.style.transform = 'translateY(-4px)'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.transform = 'translateY(0)'; }}>
               <div style={{ width: '100%', height: '120px', display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '20px' }}>
-                <svg width="100" height="100" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M3 20H21" stroke="#475569" strokeWidth="1.5" strokeLinecap="round"/>
-                  <path d="M5 16L9 11L14 13L19 6" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M15 6H19V10" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <rect x="4" y="4" width="5" height="4" rx="1" fill="#4ade80" fillOpacity="0.1" stroke="#4ade80" strokeWidth="1" strokeDasharray="2 2"/>
+                <svg width="100" height="100" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 20H21" stroke="#475569" strokeWidth="1.5"/>
+                  <path d="M5 16L9 11L14 13L19 6" stroke="#4ade80" strokeWidth="2"/>
                 </svg>
               </div>
-              <h3 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 12px 0', color: '#ffffff' }}>Custom Resume Maker</h3>
-              <p style={{ fontSize: '14px', color: '#94a3b8', margin: 0, lineHeight: '1.5' }}>Input your milestone histories inside a structurally calibrated, clean canvas structure.</p>
+              <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#ffffff' }}>Custom Resume Maker</h3>
+              <p style={{ fontSize: '14px', color: '#94a3b8', margin: 0 }}>Input your milestone histories inside a structurally calibrated, clean canvas structure.</p>
             </div>
-
           </div>
         </div>
       )}
@@ -274,27 +282,39 @@ function App() {
       {/* 📊 ATS SCANNER VIEW */}
       {currentView === 'ats' && (
         <div>
-          <button onClick={() => setCurrentView('landing')} style={{ ...secondaryBtnStyle, marginBottom: '32px', padding: '8px 16px' }}>⬅ Back to Home</button>
+          <button 
+            onClick={() => setCurrentView('landing')} 
+            style={backBtnStyle}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#38bdf8'; e.currentTarget.style.background = '#0f172a'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.background = '#1e293b'; }}
+          >
+            ⟨ Back to Dashboard
+          </button>
           <h2 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '24px', color: '#ffffff' }}>ATS Score Diagnostics</h2>
           
           <div style={cardStyle}>
-            <form onSubmit={handleAnalyze} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <form onSubmit={handleAnalyze} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={labelStyle}>Upload Document (PDF)</label>
-                <input type="file" accept=".pdf" onChange={(e) => setResumeFile(e.target.files[0])} style={{ ...inputStyle, padding: '10px' }} />
-                {!resumeFile && (
-                  <div style={{ marginTop: '16px' }}>
-                    <label style={labelStyle}>Or Paste Clear Profile Text</label>
-                    <textarea rows="5" style={inputStyle} placeholder="Paste resume plain text parameters here..." value={resumeText} onChange={(e) => setResumeText(e.target.value)} />
-                  </div>
-                )}
+                <label style={labelStyle}>Target Company Name (Optional)</label>
+                <input type="text" placeholder="e.g. TATA Elxsi, Adobe, Google" value={companyName} onChange={(e) => setCompanyName(e.target.value)} style={inputStyle} />
               </div>
-              <div>
-                <label style={labelStyle}>Target Job Profile Requirements</label>
-                <textarea rows="6" style={inputStyle} placeholder="Paste target requirements details..." value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} required />
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                <div>
+                  <label style={labelStyle}>Upload Resume (PDF)</label>
+                  <input type="file" accept=".pdf" onChange={(e) => setResumeFile(e.target.files[0])} style={{ ...inputStyle, padding: '10px' }} />
+                  {!resumeFile && <textarea rows="4" style={inputStyle} placeholder="Or paste raw resume text content..." value={resumeText} onChange={(e) => setResumeText(e.target.value)} />}
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Upload Job Description (PDF)</label>
+                  <input type="file" accept=".pdf" onChange={(e) => setJdFile(e.target.files[0])} style={{ ...inputStyle, padding: '10px' }} />
+                  {!jdFile && <textarea rows="4" style={inputStyle} placeholder="Or paste job criteria text / title..." value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} />}
+                </div>
               </div>
-              <button type="submit" disabled={loading} style={primaryBtnStyle}>
-                {loading ? 'Executing Core Vector Alignment Check...' : 'Run Diagnostics Matrix'}
+
+              <button type="submit" disabled={loading} style={{ ...primaryBtnStyle, marginTop: '12px' }}>
+                {loading ? 'Analyzing Alignment Metrics...' : 'Run Diagnostics Matrix'}
               </button>
             </form>
           </div>
@@ -303,30 +323,42 @@ function App() {
 
           {result && (
             <div style={{ ...cardStyle, marginTop: '32px' }}>
-              <h3 style={{ margin: '0 0 24px 0', textAlign: 'center', fontSize: '20px', fontWeight: '700', color: '#ffffff' }}>Scanner Analytics Profile</h3>
+              <h3 style={{ margin: '0 0 24px 0', textAlign: 'center', fontSize: '22px', fontWeight: '800', color: '#ffffff' }}>📊 Advanced ATS Scanner Diagnostics</h3>
               
               <div style={{ width: '100%', height: 160, display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
                 <ResponsiveContainer width="40%" height="100%">
                   <RadialBarChart cx="50%" cy="80%" innerRadius="85%" outerRadius="115%" barSize={14} data={[{ name: 'Max', value: 100, fill: '#334155' }, { name: 'Score', value: parseFloat(result.ats_score), fill: '#38bdf8' }]} startAngle={180} endAngle={0}>
                     <RadialBar clockWise={true} dataKey="value" cornerRadius={8} />
-                    <text x="50%" y="70%" textAnchor="middle" dominantBaseline="middle" style={{ fontSize: '26px', fontWeight: '800', fill: '#ffffff' }}>{result.ats_score}</text>
+                    <text x="50%" y="70%" textAnchor="middle" dominantBaseline="middle" style={{ fontSize: '28px', fontWeight: '800', fill: '#ffffff' }}>{result.ats_score}%</text>
                   </RadialBarChart>
                 </ResponsiveContainer>
               </div>
 
-              {result.ai_recommendations && result.ai_recommendations.length > 0 && (
-                <div style={{ marginBottom: '24px', padding: '20px', background: '#0f172a', borderRadius: '12px', border: '1px solid #334155' }}>
-                  <h4 style={{ margin: '0 0 12px 0', color: '#38bdf8', fontWeight: '700' }}>🤖 AI Strategic Checklists</h4>
-                  <ul style={{ paddingLeft: '20px', margin: '0', color: '#cbd5e1', fontSize: '14px', lineHeight: '1.6' }}>
-                    {result.ai_recommendations.map((tip, idx) => <li key={idx} style={{ marginBottom: '8px' }}>{tip}</li>)}
-                  </ul>
-                </div>
-              )}
+              <div style={{ marginBottom: '24px', padding: '20px', background: '#0f172a', borderRadius: '12px', border: '1px solid #334155' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: '#38bdf8', fontWeight: '700', fontSize: '15px' }}>💡 AI Actionable Project Blueprints</h4>
+                <ul style={{ paddingLeft: '20px', margin: '0', color: '#cbd5e1', fontSize: '14px', lineHeight: '1.7' }}>
+                  {result.recommended_skills?.map((tip, idx) => <li key={idx} style={{ marginBottom: '8px' }}>{tip}</li>)}
+                </ul>
+              </div>
 
-              <h4 style={{ color: '#cbd5e1', margin: '0 0 12px 0', fontSize: '15px', fontWeight: '700' }}>🔍 Targeted Missing Industry Terminology</h4>
+              <div style={{ marginBottom: '24px', padding: '20px', background: '#0f172a', borderRadius: '12px', border: '1px solid #334155' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: '#eab308', fontWeight: '700', fontSize: '15px' }}>🏢 Targeted Corporate Intelligence Matrix</h4>
+                <ul style={{ paddingLeft: '20px', margin: '0', color: '#cbd5e1', fontSize: '14px', lineHeight: '1.7' }}>
+                  {result.company_insights?.map((insight, idx) => <li key={idx} style={{ marginBottom: '8px' }}>{insight}</li>)}
+                </ul>
+              </div>
+
+              <div style={{ marginBottom: '24px', padding: '20px', background: '#0f172a', borderRadius: '12px', border: '1px solid #334155' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: '#4ade80', fontWeight: '700', fontSize: '15px' }}>✨ ATS Formatting Blueprint Rules</h4>
+                <ul style={{ paddingLeft: '20px', margin: '0', color: '#cbd5e1', fontSize: '14px', lineHeight: '1.7' }}>
+                  {result.formatting_rules?.map((rule, idx) => <li key={idx} style={{ marginBottom: '8px' }}>{rule}</li>)}
+                </ul>
+              </div>
+
+              <h4 style={{ color: '#cbd5e1', margin: '0 0 12px 0', fontSize: '15px', fontWeight: '700' }}>🔍 Targeted Missing Industry Terminology Badges</h4>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {result.missing_keywords.map((word, idx) => (
-                  <span key={idx} style={{ padding: '6px 14px', background: '#0f172a', color: '#94a3b8', borderRadius: '20px', fontSize: '13px', fontWeight: '600', border: '1px solid #334155' }}>{word}</span>
+                {result.missing_keywords?.map((word, idx) => (
+                  <span key={idx} style={{ padding: '6px 14px', background: '#1e293b', color: '#94a3b8', borderRadius: '20px', fontSize: '13px', fontWeight: '600', border: '1px solid #334155' }}>{word}</span>
                 ))}
               </div>
             </div>
@@ -334,16 +366,20 @@ function App() {
         </div>
       )}
 
-      {/* 📝 SLEEK RESUME BUILDER FORM VIEW */}
+      {/* 📝 RESUME BUILDER VIEW */}
       {currentView === 'builder' && (
         <div>
-          <button onClick={() => setCurrentView('landing')} style={{ ...secondaryBtnStyle, marginBottom: '32px', padding: '8px 16px' }}>⬅ Back to Home</button>
-          <h2 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '8px', color: '#ffffff' }}>Resume Blueprint Configurator</h2>
-          <p style={{ color: '#94a3b8', marginBottom: '32px', fontSize: '14px' }}>Draft standard formatting profiles dynamically optimized for baseline parsers.</p>
+          <button 
+            onClick={() => setCurrentView('landing')} 
+            style={backBtnStyle}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#38bdf8'; e.currentTarget.style.background = '#0f172a'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.background = '#1e293b'; }}
+          >
+            ⟨ Back to Dashboard
+          </button>
+          <h2 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '32px', color: '#ffffff' }}>Resume Blueprint Configurator</h2>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-            
-            {/* Form Box 1 */}
             <div style={cardStyle}>
               <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>👤 Personal Information</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -356,14 +392,12 @@ function App() {
               </div>
             </div>
 
-            {/* Form Box 2 */}
             <div style={cardStyle}>
               <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>🛠 Technical Skills Matrix</h3>
               <label style={labelStyle}>Core Frameworks & Tools (Comma Separated)</label>
-              <input type="text" placeholder="Python, React, Docker, AWS Cloud, SQL, Git..." value={skills} onChange={(e) => setSkills(e.target.value)} style={inputStyle} />
+              <input type="text" placeholder="Python, React, Docker..." value={skills} onChange={(e) => setSkills(e.target.value)} style={inputStyle} />
             </div>
 
-            {/* Form Box 3 */}
             <div style={cardStyle}>
               <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>💼 Professional Track Records</h3>
               {experiences.map((exp, index) => (
@@ -374,47 +408,41 @@ function App() {
                     <div><label style={labelStyle}>Duration Framework</label><input type="text" placeholder="e.g. 2024 - Present" value={exp.dates} onChange={(e) => updateExperience(index, 'dates', e.target.value)} style={inputStyle} /></div>
                   </div>
                   <label style={labelStyle}>Core Achievement Logs (One per line)</label>
-                  <textarea rows="3" placeholder="- Developed streaming pipelines lowering network overhead parameters by 15%&#10;- Led multi-team releases ensuring sprint timeline compliance factors" value={exp.bulletPoints} onChange={(e) => updateExperience(index, 'bulletPoints', e.target.value)} style={inputStyle} />
+                  <textarea rows="3" placeholder="- Developed streaming pipelines..." value={exp.bulletPoints} onChange={(e) => updateExperience(index, 'bulletPoints', e.target.value)} style={inputStyle} />
                 </div>
               ))}
               <button onClick={addExperience} style={secondaryBtnStyle}>➕ Add Workplace Entry</button>
             </div>
 
-            {/* Form Box 4 */}
             <div style={cardStyle}>
               <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>🚀 Engineering Projects</h3>
               {projects.map((proj, index) => (
                 <div key={index} style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: index !== projects.length - 1 ? '1px solid #334155' : 'none' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '12px' }}>
                     <div><label style={labelStyle}>Project Designation</label><input type="text" placeholder="e.g. E-Commerce Engine" value={proj.name} onChange={(e) => updateProject(index, 'name', e.target.value)} style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Technologies Used</label><input type="text" placeholder="e.g. Redis, NextJS, Node" value={proj.techStack} onChange={(e) => updateProject(index, 'techStack', e.target.value)} style={inputStyle} /></div>
+                    <div><label style={labelStyle}>Technologies Used</label><input type="text" placeholder="e.g. Redis, NextJS" value={proj.techStack} onChange={(e) => updateProject(index, 'techStack', e.target.value)} style={inputStyle} /></div>
                     <div><label style={labelStyle}>Timeline (Optional)</label><input type="text" placeholder="e.g. Summer 2026" value={proj.timeline} onChange={(e) => updateProject(index, 'timeline', e.target.value)} style={inputStyle} /></div>
                   </div>
                   <label style={labelStyle}>Operational Descriptions (One per line)</label>
-                  <textarea rows="3" placeholder="- Formulated custom caching algorithms dropping latency averages to 40ms" value={proj.description} onChange={(e) => updateProject(index, 'description', e.target.value)} style={inputStyle} />
+                  <textarea rows="3" placeholder="- Formulated custom caching algorithms..." value={proj.description} onChange={(e) => updateProject(index, 'description', e.target.value)} style={inputStyle} />
                 </div>
               ))}
               <button onClick={addProject} style={secondaryBtnStyle}>➕ Add Project Entry</button>
             </div>
 
-            {/* Form Box 5 */}
             <div style={cardStyle}>
               <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>🎓 Academic Credentials</h3>
               {education.map((edu, index) => (
                 <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                  <div><label style={labelStyle}>Institution Name</label><input type="text" placeholder="e.g. IIT Madras" value={edu.school} onChange={(e) => updateEducation(index, 'school', e.target.value)} style={inputStyle} /></div>
-                  <div><label style={labelStyle}>Degree Target</label><input type="text" placeholder="e.g. B.Tech Computer Science" value={edu.degree} onChange={(e) => updateEducation(index, 'degree', e.target.value)} style={inputStyle} /></div>
+                  <div><label style={labelStyle}>Institution Name</label><input type="text" placeholder="e.g. IIT" value={edu.school} onChange={(e) => updateEducation(index, 'school', e.target.value)} style={inputStyle} /></div>
+                  <div><label style={labelStyle}>Degree Target</label><input type="text" placeholder="e.g. B.Tech" value={edu.degree} onChange={(e) => updateEducation(index, 'degree', e.target.value)} style={inputStyle} /></div>
                   <div><label style={labelStyle}>Graduation Timeline</label><input type="text" placeholder="e.g. 2022 - 2026" value={edu.dates} onChange={(e) => updateEducation(index, 'dates', e.target.value)} style={inputStyle} /></div>
                 </div>
               ))}
               <button onClick={addEducation} style={{ ...secondaryBtnStyle, marginTop: '8px' }}>➕ Add Academic Qualification</button>
             </div>
 
-            {/* Direct Action Trigger */}
-            <button onClick={generatePDF} style={{ ...primaryBtnStyle, background: '#22c55e', color: '#0f172a', padding: '16px', fontSize: '16px' }}>
-              📥 Compile & Build PDF Artifact
-            </button>
-
+            <button onClick={generatePDF} style={{ ...primaryBtnStyle, background: '#22c55e', color: '#0f172a', padding: '16px', fontSize: '16px' }}>📥 Compile & Build PDF Artifact</button>
           </div>
         </div>
       )}
