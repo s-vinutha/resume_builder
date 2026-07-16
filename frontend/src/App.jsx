@@ -24,6 +24,12 @@ function App() {
   const [experiences, setExperiences] = useState([{ company: '', role: '', dates: '', bulletPoints: '' }]);
   const [education, setEducation] = useState([{ school: '', degree: '', dates: '' }]);
   const [projects, setProjects] = useState([{ name: '', description: '', techStack: '', timeline: '' }]);
+  
+  // New States for Builder Analytics & Scoring Integration
+  const [builderJobDescription, setBuilderJobDescription] = useState('');
+  const [builderCompanyName, setBuilderCompanyName] = useState('');
+  const [builderResult, setBuilderResult] = useState(null);
+  const [builderLoading, setBuilderLoading] = useState(false);
 
   const handlePersonalChange = (e) => {
     setPersonalInfo({ ...personalInfo, [e.target.name]: e.target.value });
@@ -49,6 +55,48 @@ function App() {
     const updated = [...projects];
     updated[index][field] = value;
     setProjects(updated);
+  };
+
+  // Helper to compile the structural form elements into plain text for the AI engine
+  const compileFormToText = () => {
+    let text = `${personalInfo.fullName}\n${personalInfo.email} | ${personalInfo.phone} | ${personalInfo.location}\n`;
+    text += `Skills: ${skills}\n\nExperience:\n`;
+    experiences.forEach(exp => {
+      text += `${exp.role} at ${exp.company} (${exp.dates})\n${exp.bulletPoints}\n`;
+    });
+    text += `\nProjects:\n`;
+    projects.forEach(proj => {
+      text += `${proj.name} [${proj.techStack}] (${proj.timeline})\n${proj.description}\n`;
+    });
+    text += `\nEducation:\n`;
+    education.forEach(edu => {
+      text += `${edu.degree} from ${edu.school} (${edu.dates})\n`;
+    });
+    return text;
+  };
+
+  // --- Run AI Diagnostics inside the Resume Maker ---
+  const handleAnalyzeBuilderResume = async () => {
+    setBuilderLoading(true);
+    setError('');
+    setBuilderResult(null);
+
+    const compiledText = compileFormToText();
+    const formDataPayload = new FormData();
+    formDataPayload.append('company_name', builderCompanyName);
+    formDataPayload.append('resume', compiledText);
+    formDataPayload.append('job_description', builderJobDescription);
+
+    try {
+      const response = await fetch('http://127.0.0.1:5001/api/analyze', { method: 'POST', body: formDataPayload });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Something went wrong');
+      setBuilderResult(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBuilderLoading(false);
+    }
   };
 
   // --- ATS-Compliant PDF Compiler ---
@@ -218,13 +266,12 @@ function App() {
   };
 
   // Styles Setup
-  const containerStyle = { maxWidth: '900px', margin: '40px auto', padding: '0 24px', fontFamily: '"Inter", -apple-system, sans-serif', color: '#f8fafc' };
+  const containerStyle = { maxWidth: '1100px', margin: '40px auto', padding: '0 24px', fontFamily: '"Inter", -apple-system, sans-serif', color: '#f8fafc' };
   const cardStyle = { background: '#1e293b', padding: '32px', borderRadius: '16px', border: '1px solid #334155', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' };
   const inputStyle = { padding: '12px 16px', borderRadius: '8px', border: '1px solid #475569', fontSize: '14px', width: '100%', boxSizing: 'border-box', outline: 'none', transition: 'border 0.2s', background: '#0f172a', color: '#ffffff', marginBottom: '12px' };
   const primaryBtnStyle = { padding: '12px 24px', background: '#38bdf8', color: '#0f172a', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '14px', transition: 'background 0.2s' };
   const labelStyle = { display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '6px', color: '#cbd5e1' };
   
-  // UPDATED: Modern Navigational Back Button Style Profile
   const backBtnStyle = { 
     padding: '10px 20px', 
     background: '#1e293b', 
@@ -241,7 +288,6 @@ function App() {
     marginBottom: '32px'
   };
 
-  // Dynamic Item Grid Button Style Profile
   const secondaryBtnStyle = { padding: '12px 24px', background: '#1e293b', color: '#ffffff', border: '1px solid #475569', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' };
 
   return (
@@ -249,7 +295,7 @@ function App() {
       
       {/* 🚀 LANDING VIEW */}
       {currentView === 'landing' && (
-        <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+        <div style={{ textAlign: 'center', padding: '80px 20px', maxWidth: '900px', margin: '0 auto' }}>
           <h1 style={{ fontSize: '42px', fontWeight: '800', letterSpacing: '-0.025em', marginBottom: '16px', color: '#ffffff' }}>AI Career Intelligence Suite</h1>
           <p style={{ color: '#94a3b8', fontSize: '16px', marginBottom: '56px', maxWidth: '600px', margin: '0 auto 56px', lineHeight: '1.6' }}>Optimize your professional footprint with automated grading algorithms and single-page layout generation engines.</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', maxWidth: '780px', margin: '0 auto' }}>
@@ -281,7 +327,7 @@ function App() {
 
       {/* 📊 ATS SCANNER VIEW */}
       {currentView === 'ats' && (
-        <div>
+        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <button 
             onClick={() => setCurrentView('landing')} 
             style={backBtnStyle}
@@ -366,7 +412,7 @@ function App() {
         </div>
       )}
 
-      {/* 📝 RESUME BUILDER VIEW */}
+      {/* 📝 SPLIT SCREEN RESUME BUILDER + LIVE PREVIEW & AI DIAGNOSTICS VIEW */}
       {currentView === 'builder' && (
         <div>
           <button 
@@ -377,72 +423,204 @@ function App() {
           >
             ⟨ Back to Dashboard
           </button>
-          <h2 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '32px', color: '#ffffff' }}>Resume Blueprint Configurator</h2>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-            <div style={cardStyle}>
-              <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>👤 Personal Information</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div><label style={labelStyle}>Full Name</label><input type="text" name="fullName" style={inputStyle} placeholder="John Doe" onChange={handlePersonalChange} /></div>
-                <div><label style={labelStyle}>Email Address</label><input type="email" name="email" style={inputStyle} placeholder="john@example.com" onChange={handlePersonalChange} /></div>
-                <div><label style={labelStyle}>Phone Number</label><input type="text" name="phone" style={inputStyle} placeholder="+91 9999999999" onChange={handlePersonalChange} /></div>
-                <div><label style={labelStyle}>Location</label><input type="text" name="location" style={inputStyle} placeholder="Bengaluru, India" onChange={handlePersonalChange} /></div>
-                <div><label style={labelStyle}>LinkedIn URL</label><input type="text" name="linkedin" style={inputStyle} placeholder="linkedin.com/in/username" onChange={handlePersonalChange} /></div>
-                <div><label style={labelStyle}>GitHub URL</label><input type="text" name="github" style={inputStyle} placeholder="github.com/username" onChange={handlePersonalChange} /></div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '32px', alignItems: 'start' }}>
+            
+            {/* LEFT COLUMN: BUILDER CONFIGURATOR FORM */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <h2 style={{ fontSize: '28px', fontWeight: '800', color: '#ffffff', margin: 0 }}>Resume Blueprint Configurator</h2>
+              
+              {/* Target Goal Input for Real-Time Analysis */}
+              <div style={cardStyle}>
+                <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '700', color: '#38bdf8' }}>🎯 Target AI Goal Checklist</h3>
+                <label style={labelStyle}>Target Company Name</label>
+                <input type="text" placeholder="e.g. Adobe, Google" value={builderCompanyName} onChange={(e) => setBuilderCompanyName(e.target.value)} style={inputStyle} />
+                
+                <label style={labelStyle}>Target Job Requirements / Role Title</label>
+                <textarea rows="3" placeholder="Paste target description criteria or title here to score yourself..." value={builderJobDescription} onChange={(e) => setBuilderJobDescription(e.target.value)} style={inputStyle} />
+                
+                <button type="button" onClick={handleAnalyzeBuilderResume} disabled={builderLoading || !builderJobDescription} style={{ ...primaryBtnStyle, width: '100%', marginTop: '4px' }}>
+                  {builderLoading ? 'Running Local AI Evaluator Engine...' : 'Calculate ATS Metrics & Inferences'}
+                </button>
+              </div>
+
+              {/* Personal Info Box */}
+              <div style={cardStyle}>
+                <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>👤 Personal Information</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div><label style={labelStyle}>Full Name</label><input type="text" name="fullName" style={inputStyle} placeholder="John Doe" onChange={handlePersonalChange} /></div>
+                  <div><label style={labelStyle}>Email Address</label><input type="email" name="email" style={inputStyle} placeholder="john@example.com" onChange={handlePersonalChange} /></div>
+                  <div><label style={labelStyle}>Phone Number</label><input type="text" name="phone" style={inputStyle} placeholder="+91 9999999999" onChange={handlePersonalChange} /></div>
+                  <div><label style={labelStyle}>Location</label><input type="text" name="location" style={inputStyle} placeholder="Bengaluru, India" onChange={handlePersonalChange} /></div>
+                  <div><label style={labelStyle}>LinkedIn URL</label><input type="text" name="linkedin" style={inputStyle} placeholder="linkedin.com/in/username" onChange={handlePersonalChange} /></div>
+                  <div><label style={labelStyle}>GitHub URL</label><input type="text" name="github" style={inputStyle} placeholder="github.com/username" onChange={handlePersonalChange} /></div>
+                </div>
+              </div>
+
+              {/* Technical Skills Box */}
+              <div style={cardStyle}>
+                <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>🛠 Technical Skills Matrix</h3>
+                <label style={labelStyle}>Core Frameworks & Tools (Comma Separated)</label>
+                <input type="text" placeholder="Python, React, Docker..." value={skills} onChange={(e) => setSkills(e.target.value)} style={inputStyle} />
+              </div>
+
+              {/* Experience Box */}
+              <div style={cardStyle}>
+                <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>💼 Professional Track Records</h3>
+                {experiences.map((exp, index) => (
+                  <div key={index} style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: index !== experiences.length - 1 ? '1px solid #334155' : 'none' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '12px' }}>
+                      <div><label style={labelStyle}>Company Target</label><input type="text" placeholder="e.g. Google" value={exp.company} onChange={(e) => updateExperience(index, 'company', e.target.value)} style={inputStyle} /></div>
+                      <div><label style={labelStyle}>Designated Role</label><input type="text" placeholder="e.g. Software Engineer" value={exp.role} onChange={(e) => updateExperience(index, 'role', e.target.value)} style={inputStyle} /></div>
+                      <div><label style={labelStyle}>Duration Framework</label><input type="text" placeholder="e.g. 2024 - Present" value={exp.dates} onChange={(e) => updateExperience(index, 'dates', e.target.value)} style={inputStyle} /></div>
+                    </div>
+                    <label style={labelStyle}>Core Achievement Logs (One per line)</label>
+                    <textarea rows="3" placeholder="- Developed streaming pipelines..." value={exp.bulletPoints} onChange={(e) => updateExperience(index, 'bulletPoints', e.target.value)} style={inputStyle} />
+                  </div>
+                ))}
+                <button onClick={addExperience} style={secondaryBtnStyle}>➕ Add Workplace Entry</button>
+              </div>
+
+              {/* Projects Box */}
+              <div style={cardStyle}>
+                <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>🚀 Engineering Projects</h3>
+                {projects.map((proj, index) => (
+                  <div key={index} style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: index !== projects.length - 1 ? '1px solid #334155' : 'none' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '12px' }}>
+                      <div><label style={labelStyle}>Project Designation</label><input type="text" placeholder="e.g. E-Commerce Engine" value={proj.name} onChange={(e) => updateProject(index, 'name', e.target.value)} style={inputStyle} /></div>
+                      <div><label style={labelStyle}>Technologies Used</label><input type="text" placeholder="e.g. Redis, NextJS" value={proj.techStack} onChange={(e) => updateProject(index, 'techStack', e.target.value)} style={inputStyle} /></div>
+                      <div><label style={labelStyle}>Timeline (Optional)</label><input type="text" placeholder="e.g. Summer 2026" value={proj.timeline} onChange={(e) => updateProject(index, 'timeline', e.target.value)} style={inputStyle} /></div>
+                    </div>
+                    <label style={labelStyle}>Operational Descriptions (One per line)</label>
+                    <textarea rows="3" placeholder="- Formulated custom caching algorithms..." value={proj.description} onChange={(e) => updateProject(index, 'description', e.target.value)} style={inputStyle} />
+                  </div>
+                ))}
+                <button onClick={addProject} style={secondaryBtnStyle}>➕ Add Project Entry</button>
+              </div>
+
+              {/* Education Box */}
+              <div style={cardStyle}>
+                <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>🎓 Academic Credentials</h3>
+                {education.map((edu, index) => (
+                  <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                    <div><label style={labelStyle}>Institution Name</label><input type="text" placeholder="e.g. IIT" value={edu.school} onChange={(e) => updateEducation(index, 'school', e.target.value)} style={inputStyle} /></div>
+                    <div><label style={labelStyle}>Degree Target</label><input type="text" placeholder="e.g. B.Tech" value={edu.degree} onChange={(e) => updateEducation(index, 'degree', e.target.value)} style={inputStyle} /></div>
+                    <div><label style={labelStyle}>Graduation Timeline</label><input type="text" placeholder="e.g. 2022 - 2026" value={edu.dates} onChange={(e) => updateEducation(index, 'dates', e.target.value)} style={inputStyle} /></div>
+                  </div>
+                ))}
+                <button onClick={addEducation} style={{ ...secondaryBtnStyle, marginTop: '8px' }}>➕ Add Academic Qualification</button>
               </div>
             </div>
 
-            <div style={cardStyle}>
-              <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>🛠 Technical Skills Matrix</h3>
-              <label style={labelStyle}>Core Frameworks & Tools (Comma Separated)</label>
-              <input type="text" placeholder="Python, React, Docker..." value={skills} onChange={(e) => setSkills(e.target.value)} style={inputStyle} />
-            </div>
+            {/* RIGHT COLUMN: STICKY LIVE PREVIEW PANEL + LIVE AI SCORE */}
+            <div style={{ position: 'sticky', top: '40px', display: 'flex', flexDirection: 'column', gap: '24px', maxHeight: '90vh', overflowY: 'auto', paddingRight: '4px' }}>
+              
+              {/* Trigger Action Layout */}
+              <button onClick={generatePDF} style={{ ...primaryBtnStyle, background: '#22c55e', color: '#0f172a', padding: '16px', fontSize: '16px', boxShadow: '0 4px 14px rgb(34 197 94 / 0.3)' }}>
+                📥 Compile & Download Clean PDF Document
+              </button>
 
-            <div style={cardStyle}>
-              <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>💼 Professional Track Records</h3>
-              {experiences.map((exp, index) => (
-                <div key={index} style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: index !== experiences.length - 1 ? '1px solid #334155' : 'none' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '12px' }}>
-                    <div><label style={labelStyle}>Company Target</label><input type="text" placeholder="e.g. Google" value={exp.company} onChange={(e) => updateExperience(index, 'company', e.target.value)} style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Designated Role</label><input type="text" placeholder="e.g. Software Engineer" value={exp.role} onChange={(e) => updateExperience(index, 'role', e.target.value)} style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Duration Framework</label><input type="text" placeholder="e.g. 2024 - Present" value={exp.dates} onChange={(e) => updateExperience(index, 'dates', e.target.value)} style={inputStyle} /></div>
+              {/* LIVE ATS SCORE & RECOMMENDATIONS DISPLAY */}
+              {builderResult && (
+                <div style={{ ...cardStyle, borderColor: '#334155', background: '#0f172a' }}>
+                  <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '800', textTransform: 'uppercase', color: '#38bdf8', textAlign: 'center' }}>📈 Active Blueprint Diagnostics</h3>
+                  
+                  <div style={{ height: 120, display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+                    <ResponsiveContainer width="60%" height="100%">
+                      <RadialBarChart cx="50%" cy="80%" innerRadius="80%" outerRadius="110%" barSize={10} data={[{ name: 'Max', value: 100, fill: '#1e293b' }, { name: 'Score', value: parseFloat(builderResult.ats_score), fill: '#4ade80' }]} startAngle={180} endAngle={0}>
+                        <RadialBar clockWise={true} dataKey="value" cornerRadius={6} />
+                        <text x="50%" y="75%" textAnchor="middle" dominantBaseline="middle" style={{ fontSize: '22px', fontWeight: '800', fill: '#ffffff' }}>{builderResult.ats_score}%</text>
+                      </RadialBarChart>
+                    </ResponsiveContainer>
                   </div>
-                  <label style={labelStyle}>Core Achievement Logs (One per line)</label>
-                  <textarea rows="3" placeholder="- Developed streaming pipelines..." value={exp.bulletPoints} onChange={(e) => updateExperience(index, 'bulletPoints', e.target.value)} style={inputStyle} />
-                </div>
-              ))}
-              <button onClick={addExperience} style={secondaryBtnStyle}>➕ Add Workplace Entry</button>
-            </div>
 
-            <div style={cardStyle}>
-              <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>🚀 Engineering Projects</h3>
-              {projects.map((proj, index) => (
-                <div key={index} style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: index !== projects.length - 1 ? '1px solid #334155' : 'none' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '12px' }}>
-                    <div><label style={labelStyle}>Project Designation</label><input type="text" placeholder="e.g. E-Commerce Engine" value={proj.name} onChange={(e) => updateProject(index, 'name', e.target.value)} style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Technologies Used</label><input type="text" placeholder="e.g. Redis, NextJS" value={proj.techStack} onChange={(e) => updateProject(index, 'techStack', e.target.value)} style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Timeline (Optional)</label><input type="text" placeholder="e.g. Summer 2026" value={proj.timeline} onChange={(e) => updateProject(index, 'timeline', e.target.value)} style={inputStyle} /></div>
+                  <div style={{ fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '8px', color: '#cbd5e1' }}>
+                    <div><strong style={{ color: '#38bdf8' }}>AI Project Recommendation:</strong> {builderResult.recommended_skills?.[0]}</div>
+                    <div><strong style={{ color: '#eab308' }}>Company Strategy Match:</strong> {builderResult.company_insights?.[0]}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                      {builderResult.missing_keywords?.map((word, i) => (
+                        <span key={i} style={{ padding: '4px 8px', background: '#1e293b', border: '1px solid #334155', borderRadius: '4px', fontSize: '11px', color: '#94a3b8' }}>{word}</span>
+                      ))}
+                    </div>
                   </div>
-                  <label style={labelStyle}>Operational Descriptions (One per line)</label>
-                  <textarea rows="3" placeholder="- Formulated custom caching algorithms..." value={proj.description} onChange={(e) => updateProject(index, 'description', e.target.value)} style={inputStyle} />
                 </div>
-              ))}
-              <button onClick={addProject} style={secondaryBtnStyle}>➕ Add Project Entry</button>
-            </div>
+              )}
 
-            <div style={cardStyle}>
-              <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '700', color: '#ffffff' }}>🎓 Academic Credentials</h3>
-              {education.map((edu, index) => (
-                <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                  <div><label style={labelStyle}>Institution Name</label><input type="text" placeholder="e.g. IIT" value={edu.school} onChange={(e) => updateEducation(index, 'school', e.target.value)} style={inputStyle} /></div>
-                  <div><label style={labelStyle}>Degree Target</label><input type="text" placeholder="e.g. B.Tech" value={edu.degree} onChange={(e) => updateEducation(index, 'degree', e.target.value)} style={inputStyle} /></div>
-                  <div><label style={labelStyle}>Graduation Timeline</label><input type="text" placeholder="e.g. 2022 - 2026" value={edu.dates} onChange={(e) => updateEducation(index, 'dates', e.target.value)} style={inputStyle} /></div>
+              {/* CHRONOLOGICAL ATS AESTHETIC PREVIEW CANVAS */}
+              <div style={{ background: '#ffffff', color: '#1e293b', borderRadius: '8px', padding: '40px 32px', minHeight: '600px', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.3)', fontFamily: 'Helvetica, Arial, sans-serif' }}>
+                {/* Header */}
+                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                  <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#1a202c', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{personalInfo.fullName || 'YOUR FULL NAME'}</div>
+                  <div style={{ fontSize: '10px', color: '#4a5568', marginTop: '6px', fontWeight: '500' }}>
+                    {[personalInfo.email, personalInfo.phone, personalInfo.location].filter(Boolean).join('   |   ')}
+                  </div>
+                  <div style={{ fontSize: '9px', color: '#718096', marginTop: '4px' }}>
+                    {[personalInfo.linkedin, personalInfo.github].filter(Boolean).join('   •   ')}
+                  </div>
                 </div>
-              ))}
-              <button onClick={addEducation} style={{ ...secondaryBtnStyle, marginTop: '8px' }}>➕ Add Academic Qualification</button>
-            </div>
 
-            <button onClick={generatePDF} style={{ ...primaryBtnStyle, background: '#22c55e', color: '#0f172a', padding: '16px', fontSize: '16px' }}>📥 Compile & Build PDF Artifact</button>
+                {/* Technical Skills Preview */}
+                {skills && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 'bold', borderBottom: '1px solid #cbd5e0', paddingBottom: '2px', color: '#1a202c', textTransform: 'uppercase' }}>Technical Skills</div>
+                    <div style={{ fontSize: '10px', marginTop: '6px', color: '#2d3748', lineHeight: '1.5' }}>
+                      <strong>Core Frameworks & Stack Tools:</strong> {skills}
+                    </div>
+                  </div>
+                )}
+
+                {/* Experience Preview */}
+                {experiences.some(e => e.company || e.role) && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 'bold', borderBottom: '1px solid #cbd5e0', paddingBottom: '2px', color: '#1a202c', textTransform: 'uppercase' }}>Professional Experience</div>
+                    {experiences.map((exp, i) => (exp.company || exp.role) && (
+                      <div key={i} style={{ marginTop: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', fontSize: '10.5px', fontWeight: 'bold', color: '#2d3748' }}>
+                          <span>{exp.role || 'Designated Role'}</span>
+                          <span style={{ fontWeight: 'normal', color: '#4a5568', marginLeft: 'auto', fontSize: '9.5px' }}>{exp.company || 'Organization'} | {exp.dates || 'Timeline'}</span>
+                        </div>
+                        <div style={{ fontSize: '9.5px', marginTop: '4px', color: '#4a5568', whiteSpace: 'pre-line', paddingLeft: '8px', lineHeight: '1.5' }}>
+                          {exp.bulletPoints ? exp.bulletPoints.split('\n').map(line => line.trim() ? `• ${line.replace(/^-\s*/, '')}` : '').join('\n') : '• Milestone logs and development highlights...'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Projects Preview */}
+                {projects.some(p => p.name) && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 'bold', borderBottom: '1px solid #cbd5e0', paddingBottom: '2px', color: '#1a202c', textTransform: 'uppercase' }}>Engineering Projects</div>
+                    {projects.map((proj, i) => proj.name && (
+                      <div key={i} style={{ marginTop: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', fontSize: '10.5px', fontWeight: 'bold', color: '#2d3748' }}>
+                          <span>{proj.name}</span>
+                          <span style={{ fontWeight: 'normal', color: '#4a5568', marginLeft: 'auto', fontSize: '9.5px' }}>{proj.timeline}</span>
+                        </div>
+                        {proj.techStack && <div style={{ fontSize: '9px', fontStyle: 'italic', color: '#718096', marginTop: '2px' }}>Tech Stack: {proj.techStack}</div>}
+                        <div style={{ fontSize: '9.5px', marginTop: '4px', color: '#4a5568', whiteSpace: 'pre-line', paddingLeft: '8px', lineHeight: '1.5' }}>
+                          {proj.description ? proj.description.split('\n').map(line => line.trim() ? `• ${line.replace(/^-\s*/, '')}` : '').join('\n') : '• Core metrics drop benchmarks and performance attributes...'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Education Preview */}
+                {education.some(e => e.school) && (
+                  <div style={{ marginBottom: '8px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 'bold', borderBottom: '1px solid #cbd5e0', paddingBottom: '2px', color: '#1a202c', textTransform: 'uppercase' }}>Education</div>
+                    {education.map((edu, i) => edu.school && (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', fontSize: '10.5px', marginTop: '6px', color: '#2d3748' }}>
+                        <span style={{ fontWeight: 'bold' }}>{edu.degree || 'Degree details'}</span>
+                        <span style={{ color: '#4a5568', marginLeft: 'auto', fontSize: '9.5px' }}>{edu.school} | {edu.dates}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+            </div>
           </div>
         </div>
       )}
